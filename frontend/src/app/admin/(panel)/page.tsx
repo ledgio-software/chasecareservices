@@ -3,6 +3,7 @@ import { Card, Notice, PageHeader, StatusBadge, formatDateTime } from "@/compone
 import { requireStaff } from "@/lib/admin/session";
 import { RESOURCES } from "@/lib/admin/resources";
 import { CONTACT_TOPICS } from "@/lib/enquiry-topics";
+import { pct, resolveRange, type ReportStats } from "@/lib/reports";
 
 export const metadata = { title: "Overview" };
 
@@ -26,6 +27,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const care = staff.can("care_ops.view") ? (await db.rpc("care_report_counts")).data?.[0] : null;
   const missedVisits = staff.can("care_ops.view") ? Number((await db.rpc("missed_visit_count")).data ?? 0) : 0;
   const incidents = staff.can("care_ops.view") ? (await db.rpc("care_incident_counts")).data?.[0] : null;
+
+  // This month at a glance (totals from the Reports page).
+  const month = resolveRange({ preset: "this-month" });
+  const glance = staff.can("reports.view") ? ((await db.rpc("report_stats", { from_date: month.from, to_date: month.to })).data as unknown as ReportStats | null) : null;
 
   const quickLinks = [
     ...(staff.can("content.edit") ? [{ label: "Homepage slider & banners", href: "/admin/homepage" }] : []),
@@ -67,6 +72,34 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           );
         })}
       </dl>
+
+      {glance && (
+        <section aria-labelledby="glance-h" className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="glance-h" className="font-bold text-brand-900">
+              This month at a glance
+            </h2>
+            <Link href="/admin/reports" className="text-sm font-semibold text-brand-700 underline">
+              All reports
+            </Link>
+          </div>
+          <dl className="mt-3 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3 xl:grid-cols-6">
+            {[
+              ["Care requests", glance.enquiries.by_type.find((b) => b.key === "care_request")?.n ?? 0],
+              ["From the diaspora", glance.enquiries.from_abroad],
+              ["New applicants", glance.recruitment.new_applicants],
+              ["Visits", glance.care.visits],
+              ["Report rate", pct(glance.care.visits_done, glance.care.visits) != null ? `${pct(glance.care.visits_done, glance.care.visits)}%` : "—"],
+              ["Course enrolments", glance.academy.enrolments],
+            ].map(([k, v]) => (
+              <div key={String(k)}>
+                <dt className="text-muted">{k}</dt>
+                <dd className="text-xl font-bold tabular-nums text-brand-900">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       {canEnquiries && (
         <Card title="Latest enquiries" className="mt-8">

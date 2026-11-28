@@ -3042,6 +3042,10 @@ export type Database = {
         };
         Returns: string;
       };
+      report_stats: {
+        Args: { from_date: string; to_date: string };
+        Returns: Json;
+      };
       search_site: {
         Args: { max_results?: number; query: string };
         Returns: {

@@ -108,6 +108,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     {
       title: "Admin",
       items: [
+        ...(staff.can("reports.view") ? [{ label: "Reports", href: "/admin/reports" }] : []),
         ...(staff.can("settings.view") ? [{ label: "Site settings", href: "/admin/settings" }] : []),
         ...(staff.can("users.view") ? [{ label: "Staff & roles", href: "/admin/users" }] : []),
         ...(staff.can("audit.view") ? [{ label: "Activity log", href: "/admin/audit" }] : []),
